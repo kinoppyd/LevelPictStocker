@@ -1,0 +1,45 @@
+#!/usr/bin/env perl
+use Mojolicious::Lite;
+use LevelDB;
+
+# Documentation browser under "/perldoc"
+plugin 'PODRenderer';
+
+get '/' => sub {
+  my $c = shift;
+  $c->render('index');
+};
+
+post '/store' => sub {
+    my $c = shift;
+    my $post = $c->param('file');
+    my $recf = $post->slurp;
+
+    my $db = LevelDB->new;
+    my $res = $db->store($recf);
+    $c->render( json => { digest => $res, size => $post->size } );
+};
+
+get '/:digest' => sub {
+    my $c = shift;
+    my $digest = $c->stash('digest');
+
+    my $db = LevelDB->new;
+    my $req_file = $db->fetch($digest);
+    $c->render(data => $req_file);
+};
+
+app->start;
+__DATA__
+
+@@ index.html.ep
+% layout 'default';
+% title 'Welcome';
+Welcome to the Mojolicious real-time web framework!
+
+@@ layouts/default.html.ep
+<!DOCTYPE html>
+<html>
+  <head><title><%= title %></title></head>
+  <body><%= content %></body>
+</html>
